@@ -1,7 +1,5 @@
 # DISEL_Editor
 
-[TOC]
-
 ### Introduction
 DISEL Editor is a software for editing DISEL(Domain Information System Extended Language). 
 It can be used by users which are not familiar with DISEL to create their own ontology. 
