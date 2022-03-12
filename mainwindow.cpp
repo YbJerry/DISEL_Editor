@@ -165,13 +165,13 @@ void MainWindow::clearEdgeModel()
     edgeModel->removeRows(0, edgeModel->rowCount());
 }
 
-void MainWindow::createRelationModel(std::vector<DISEL::Relation> relas)
+void MainWindow::createRelationModel(std::vector<DISEL::Relation*> relas)
 {
     for(auto rela:relas){
-        QStandardItem *nameItem = new QStandardItem(QString(rela.getName().data()));
+        QStandardItem *nameItem = new QStandardItem(QString(rela->getName().data()));
         nameItem->setCheckable(true);
         QString props;
-        for(auto p:rela.getAllProperties()){
+        for(auto p:rela->getAllProperties()){
             props += QString::fromStdString(rptos(p)) + " ";
         }
         QStandardItem *propItem = new QStandardItem(props);
@@ -179,11 +179,12 @@ void MainWindow::createRelationModel(std::vector<DISEL::Relation> relas)
     }
 }
 
-void MainWindow::addRowToRelationModel(DISEL::Relation rela)
+void MainWindow::addRowToRelationModel(DISEL::Relation* rela)
 {
-    QStandardItem *nameItem = new QStandardItem(QString::fromStdString(rela.getName()));
+    QStandardItem *nameItem = new QStandardItem(QString::fromStdString(rela->getName()));
+    nameItem->setCheckable(true);
     QString props;
-    for(auto p:rela.getAllProperties()){
+    for(auto p:rela->getAllProperties()){
         props += QString::fromStdString(rptos(p)) + " ";
     }
     QStandardItem *propItem = new QStandardItem(props);
@@ -193,6 +194,11 @@ void MainWindow::addRowToRelationModel(DISEL::Relation rela)
 void MainWindow::bindRelationModel()
 {
     ui->relationView->setModel(relationModel);
+}
+
+void MainWindow::clearRelationModel()
+{
+    relationModel->removeRows(0, relationModel->rowCount());
 }
 
 void MainWindow::testInit()
@@ -252,8 +258,10 @@ void MainWindow::createRootedGraph(QString name)
         rgScene->clear();
         rgScene->addPixmap(QPixmap::fromImage(rg));
 
+        clearEdgeModel();
         createEdgeModel(*iter);
         bindEdgeModel();
+        clearRelationModel();
         createRelationModel(graph->getRelations());
         bindRelationModel();
 
@@ -273,6 +281,7 @@ void MainWindow::createRootedGraph(QString name)
                 clearEdgeModel();
                 createEdgeModel(newGra);
                 bindEdgeModel();
+                clearRelationModel();
 
                 ui->rightTabWidget->setCurrentIndex(1);
             }
@@ -387,7 +396,7 @@ void MainWindow::on_delEdgeButton_clicked()
         if(it->checkState() == Qt::Checked){
             auto row =  edgeModel->takeRow(i);
 
-            auto rela = row[0]->data().toString().toStdString();
+            auto rela = row[0]->data(Qt::DisplayRole).toString().toStdString();
             auto idx = row[1]->data().toInt();
 
             if(rela.empty()){
@@ -407,14 +416,14 @@ void MainWindow::on_delEdgeButton_clicked()
 
 void MainWindow::on_addRelationButton_clicked()
 {
-    NewRelationDialog dialog(this);
+    NewRelationDialog dialog(graph, false, this);
     if(dialog.exec() == QDialog::Accepted){
         DISEL::Relation *rela = new DISEL::Relation(dialog.getName().toStdString());
         for(auto prop:dialog.getProperties()){
             rela->addProperty(prop);
         }
         graph->addRelation(*rela);
-        addRowToRelationModel(*rela);
+        addRowToRelationModel(rela);
         bindRelationModel();
     }
 }
@@ -424,7 +433,7 @@ void MainWindow::on_delRelationButton_clicked()
     for(int i = 0; i < relationModel->rowCount();){
         auto it = relationModel->item(i, 0);
         if(it->checkState() == Qt::Checked){
-            auto name = it->data().toString().toStdString();
+            auto name = it->data(Qt::DisplayRole).toString().toStdString();
             relationModel->removeRow(i);
             graph->delRelation(name);
         }else{
@@ -432,6 +441,9 @@ void MainWindow::on_delRelationButton_clicked()
         }
     }
     bindRelationModel();
+    clearEdgeModel();
+    createEdgeModel(graph);
+    bindEdgeModel();
 }
 
 // new file
@@ -584,5 +596,29 @@ void MainWindow::createBooleanLattice()
     blModel->createBLItems();
     blModel->createLines();
     blModel->bindScene(blScene);
+}
+
+void MainWindow::on_actionDocument_triggered()
+{
+    QDesktopServices::openUrl(QUrl("https://ybjerry.github.io/DISEL_Editor_helpdoc/"));
+}
+
+
+void MainWindow::on_relationView_doubleClicked(const QModelIndex &index)
+{
+    auto name = relationModel->item(index.row())->data(Qt::DisplayRole).toString().toStdString();
+    if(auto op = graph->getRelation(name); op){
+        auto *rela = op.value();
+        NewRelationDialog dlg(graph, true, this);
+        dlg.setContent(*rela);
+        if(dlg.exec() == QDialog::Accepted){
+            rela->clearProperties();
+            for(auto prop:dlg.getProperties()){
+                rela->addProperty(prop);
+            }
+        }
+        clearRelationModel();
+        createRelationModel(graph->getRelations());
+    }
 }
 

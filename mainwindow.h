@@ -10,6 +10,8 @@
 #include <QStandardItemModel>
 #include <QGraphicsScene>
 #include <QTabWidget>
+#include <QDesktopServices>
+#include <QUrl>
 
 // DISEL API libraries
 #include "DISXMLWriter.h"
@@ -59,10 +61,13 @@ private slots:
     void on_actionSave_triggered();
     void on_actionLoad_triggered();
     void on_actionSave_as_triggered();
+    void on_actionDocument_triggered();
 
     void on_atomDomainView_doubleClicked(const QModelIndex &index);
 
     void on_conceptView_doubleClicked(const QModelIndex &index);
+
+    void on_relationView_doubleClicked(const QModelIndex &index);
 
 private:
     void createBooleanLattice();
@@ -89,9 +94,10 @@ private:
     void bindEdgeModel();
     void clearEdgeModel();
 
-    void createRelationModel(std::vector<DISEL::Relation> relas);
-    void addRowToRelationModel(DISEL::Relation rela);
+    void createRelationModel(std::vector<DISEL::Relation*> relas);
+    void addRowToRelationModel(DISEL::Relation* rela);
     void bindRelationModel();
+    void clearRelationModel();
 
     // test init
     void testInit();
