@@ -68,13 +68,13 @@ private slots:
     void on_actionDocument_triggered();
 
     void on_atomDomainView_doubleClicked(const QModelIndex &index);
-
     void on_conceptView_doubleClicked(const QModelIndex &index);
-
     void on_relationView_doubleClicked(const QModelIndex &index);
+    void on_actionAbout_triggered();
 
 private:
     void createBooleanLattice();
+
 
     void updateRootedGraph();
 
@@ -84,6 +84,8 @@ private:
     void addRowToConceptModel(const DISEL::Concept& con);
     void bindConceptModel();
     void updateConceptModel();
+    void clearConceptModel();
+
 
     void createAtomDomainModel(std::vector<DISEL::Atom*> ad);
     void addRowToAtomDomainModel(const DISEL::Atom& at);

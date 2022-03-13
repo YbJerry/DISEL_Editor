@@ -42,7 +42,16 @@ void BooleanLatticeModel::addConcept(QString con, const QVector<QString> &conLat
 
 void BooleanLatticeModel::createBLItems()
 {
+    for(auto &vec : blItems){
+        for(auto pItem : vec){
+            delete pItem;
+        }
+    }
     blItems.clear();
+
+    if(atoms.empty()){
+        return;
+    }
 
     qreal left = 0, top = 0;
     int n = atoms.size();
@@ -140,7 +149,7 @@ void BooleanLatticeModel::clear()
     concepts.clear();
     latticeNumHash.clear();
 
-    for(auto vec : blItems){
+    for(auto &vec : blItems){
         for(auto pItem : vec){
             delete pItem;
         }

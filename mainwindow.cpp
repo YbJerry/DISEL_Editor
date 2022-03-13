@@ -81,6 +81,11 @@ void MainWindow::updateConceptModel()
     bindConceptModel();
 }
 
+void MainWindow::clearConceptModel()
+{
+    clearModel(conceptModel);
+}
+
 void MainWindow::createAtomDomainModel(std::vector<DISEL::Atom*> ad)
 {
     for(auto a:ad){
@@ -280,6 +285,7 @@ void MainWindow::createRootedGraph(QString name)
                 ui->rootedGraphView->scene()->clear();
 
                 auto newGra = new DISEL::Graph(name.toStdString());
+                graph = newGra;
                 newGra->setRoot(name.toStdString());
                 onto->addGraph(newGra);
                 clearEdgeModel();
@@ -368,7 +374,7 @@ void MainWindow::on_addEdgeButton_clicked()
     NewEdgeDialog dialog(graph, this);
     if(dialog.exec() == QDialog::Accepted){
         DISEL::ConceptTag from(dialog.getFromConceptTag().toStdString());
-        DISEL::ConceptTag to(dialog.getFromConceptTag().toStdString());
+        DISEL::ConceptTag to(dialog.getToConceptTag().toStdString());
 
         if(auto onto = dialog.getFromOntologyTag(); onto){
             from.setOntologyBelong(onto->toStdString());
@@ -390,6 +396,7 @@ void MainWindow::on_addEdgeButton_clicked()
         clearEdgeModel();
         createEdgeModel(graph);
         bindEdgeModel();
+        updateRootedGraph();
     }
 }
 
@@ -416,6 +423,7 @@ void MainWindow::on_delEdgeButton_clicked()
     clearEdgeModel();
     createEdgeModel(graph);
     bindEdgeModel();
+    updateRootedGraph();
 }
 
 void MainWindow::on_addRelationButton_clicked()
@@ -429,6 +437,7 @@ void MainWindow::on_addRelationButton_clicked()
         graph->addRelation(*rela);
         addRowToRelationModel(rela);
         bindRelationModel();
+        updateRootedGraph();
     }
 }
 
@@ -448,18 +457,25 @@ void MainWindow::on_delRelationButton_clicked()
     clearEdgeModel();
     createEdgeModel(graph);
     bindEdgeModel();
+    updateRootedGraph();
 }
 
 // new file
 void MainWindow::on_actionNew_triggered()
 {
     delete onto;
-    DISEL::Ontology *onto = new DISEL::Ontology();
+    onto = new DISEL::Ontology();
+    graph = nullptr;
+    isChanged = false;
+    fileName.clear();
 
-    appendConceptModel(onto);
-    bindConceptModel();
-    createAtomDomainModel(onto->getAtomDomain());
-    bindAtomDomainModel();
+    clearConceptModel();
+    clearAtomDomainModel();
+    clearRelationModel();
+    clearEdgeModel();
+    blScene->clear();
+    rgScene->clear();
+    blModel->clear();
 }
 
 
@@ -475,6 +491,18 @@ void MainWindow::on_actionExit_triggered()
 void MainWindow::on_actionSave_triggered()
 {
     DISXMLWriter writer;
+    if(onto->getName().empty()){
+        bool ok;
+        auto ontoName = QInputDialog::getText(this, tr("Set the name of saved ontology"), tr("Ontology name: "), QLineEdit::Normal, "", &ok);
+        if(ok && !ontoName.isEmpty()){
+            onto->setName(ontoName.toStdString());
+        }else{
+            QMessageBox msgBox;
+            msgBox.setText(tr("Please input the name of ontology"));
+            msgBox.exec();
+            return;
+        }
+    }
     if(fileName.isEmpty()){
         fileName = QFileDialog::getSaveFileName(this, tr("Save DIS File"), "./source.xml", tr("DIS Files (*.xml)"));
 
@@ -487,6 +515,20 @@ void MainWindow::on_actionSave_triggered()
 void MainWindow::on_actionSave_as_triggered()
 {
     DISXMLWriter writer;
+
+    if(onto->getName().empty()){
+        bool ok;
+        auto ontoName = QInputDialog::getText(this, tr("Set the name of saved ontology"), tr("Ontology name: "), QLineEdit::Normal, "", &ok);
+        if(ok && !ontoName.isEmpty()){
+            onto->setName(ontoName.toStdString());
+        }else{
+            QMessageBox msgBox;
+            msgBox.setText(tr("Please input the name of ontology"));
+            msgBox.exec();
+            return;
+        }
+    }
+
     fileName = QFileDialog::getSaveFileName(this, tr("Save DIS File"), "./source.xml", tr("DIS Files (*.xml)"));
 
     if(fileName.isEmpty())
@@ -516,14 +558,24 @@ void MainWindow::on_actionLoad_triggered()
         return;
 
     delete onto;
+    graph = nullptr;
+    isChanged = false;
+
+    clearRelationModel();
+    clearEdgeModel();
 
     DISXMLReader reader(fileName.toStdString());
     onto = reader.read();
 
+    clearConceptModel();
     appendConceptModel(onto);
     bindConceptModel();
+
+    clearAtomDomainModel();
     createAtomDomainModel(onto->getAtomDomain());
     bindAtomDomainModel();
+
+    blModel->clear();
 
     for(auto at:onto->getAtomDomain()){
         blModel->addAtom(at->getName().data());
@@ -540,10 +592,13 @@ void MainWindow::on_actionLoad_triggered()
 
     blModel->createBLItems();
     blModel->createLines();
+    blScene->clear();
     blModel->bindScene(blScene);
 
     ui->booleanLatticeView->setScene(blScene);
     ui->booleanLatticeView->show();
+
+    rgScene->clear();
 }
 
 void MainWindow::on_atomDomainView_doubleClicked(const QModelIndex &index)
@@ -623,6 +678,13 @@ void MainWindow::on_relationView_doubleClicked(const QModelIndex &index)
         }
         clearRelationModel();
         createRelationModel(graph->getRelations());
+        updateRootedGraph();
     }
+}
+
+
+void MainWindow::on_actionAbout_triggered()
+{
+    QDesktopServices::openUrl(QUrl("https://ybjerry.github.io/DISEL_Editor_helpdoc/about/"));
 }
 
