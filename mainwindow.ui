@@ -25,7 +25,7 @@
       </property>
       <widget class="QWidget" name="atomDomainTab">
        <attribute name="title">
-        <string>Atom Domain</string>
+        <string>Atoms of the domain</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
