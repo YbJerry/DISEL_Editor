@@ -49,7 +49,7 @@ DEPENDPATH += 'YOUR TinyXML-2 HEADER FILE PATH'
 ```
 
 ### Pre-build Version
-We also provide pre-bulid version of DISEL Editor. You can download it in this page. But for now, we only provide Windows x64 version.
+We also provide pre-bulid version of DISEL Editor. You can download it in [release](https://github.com/YbJerry/DISEL_Editor/releases) page. But for now, we only provide Windows x64 version.
 
 ### Help Documentation
 You can get information about DISEL Editor in [help documentation website](https://ybjerry.github.io/DISEL_Editor_helpdoc/).
