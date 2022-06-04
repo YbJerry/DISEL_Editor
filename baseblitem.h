@@ -32,9 +32,15 @@ public:
     QPointF getCenterPos();
     QPointF getUpperCenterPos();
     QPointF getLowerCenterPos();
+    void redraw();
     void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
     void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) override;
+
+    void addNotifyLine(QGraphicsLineItem *line);
+    void addNotifyBLItem(BaseBLItem *blItem);
+    void notifyLinkingItems(bool focus);
+    void setFocused(bool focus);
 
 signals:
     void clicked(QString conceptName);
@@ -46,6 +52,8 @@ private:
     qreal width, height;
     BLTYPE type;
     bool isFocused;
+    QVector<QGraphicsLineItem *> notifyLineVec;
+    QVector<BaseBLItem *> notifyBLVec;
 };
 
 #endif // BASEBLITEM_H

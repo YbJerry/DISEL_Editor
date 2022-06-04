@@ -119,7 +119,13 @@ void BooleanLatticeModel::createLines()
                 if(latticeNumHash[i][j].contains(latticeNumHash[i-1][k])){
                     auto pos1 = blItems[i][j]->getLowerCenterPos();
                     auto pos2 = blItems[i-1][k]->getUpperCenterPos();
-                    lineItems.push_back(new QGraphicsLineItem(pos1.x(), pos1.y(), pos2.x(), pos2.y()));
+                    blItems[i][j]->addNotifyBLItem(blItems[i-1][k]);
+                    notifyBLMap[blItems[i][j]].push_back(blItems[i-1][k]);
+
+                    auto lineItem = new QGraphicsLineItem(pos1.x(), pos1.y(), pos2.x(), pos2.y());
+                    lineItems.push_back(lineItem);
+                    blItems[i][j]->addNotifyLine(lineItem);
+                    notifyLineMap[blItems[i][j]].push_back(lineItem);
                 }
             }
         }

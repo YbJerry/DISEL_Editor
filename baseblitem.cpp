@@ -38,14 +38,16 @@ BaseBLItem::BaseBLItem(QString name, QPointF pos, qreal width, qreal height, BLT
 
 QRectF BaseBLItem::boundingRect() const
 {
-    return QRectF(left-penWidth, top-penWidth, width+penWidth, height+penWidth);
+    return QRectF(left-2*penWidth, top-2*penWidth, width+2*penWidth, height+2*penWidth);
 }
 
 void BaseBLItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
     QRectF rect(left, top, width, height);
     if(isFocused){
-        painter->setBrush(Qt::gray);
+        QPen pen;
+        pen.setColor(Qt::magenta);
+        painter->setPen(pen);
     }
     switch (type) {
     case BLTYPE::ANONY:
@@ -79,19 +81,57 @@ QPointF BaseBLItem::getLowerCenterPos()
     return QPointF{left+width/2, top+height};
 }
 
+void BaseBLItem::redraw()
+{
+    update(QRectF(left, top, width, height));
+}
+
 void BaseBLItem::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     isFocused = true;
-    update(QRectF(left, top, width, height));
+    notifyLinkingItems(isFocused);
+    redraw();
 }
 
 void BaseBLItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
     isFocused = false;
-    update(QRectF(left, top, width, height));
+    notifyLinkingItems(isFocused);
+    redraw();
 }
 
 void BaseBLItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
     emit clicked(name);
+}
+
+void BaseBLItem::addNotifyLine(QGraphicsLineItem *line)
+{
+    notifyLineVec.push_back(line);
+}
+
+void BaseBLItem::addNotifyBLItem(BaseBLItem *blItem)
+{
+    notifyBLVec.push_back(blItem);
+}
+
+void BaseBLItem::notifyLinkingItems(bool focus)
+{
+    QPen pen;
+    pen.setColor(focus?Qt::magenta:Qt::black);
+
+    for(auto line:notifyLineVec){
+        line->setPen(pen);
+    }
+
+    for(auto blItem:notifyBLVec){
+        blItem->setFocused(focus);
+        blItem->notifyLinkingItems(focus);
+        blItem->redraw();
+    }
+}
+
+void BaseBLItem::setFocused(bool focus)
+{
+    isFocused = focus;
 }
