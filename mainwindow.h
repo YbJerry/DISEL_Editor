@@ -72,6 +72,9 @@ private slots:
     void on_relationView_doubleClicked(const QModelIndex &index);
     void on_actionAbout_triggered();
 
+    void on_addOntoButton_clicked();
+    void on_delOntoButton_clicked();
+
 private:
     void createBooleanLattice();
 
@@ -105,6 +108,12 @@ private:
     void bindRelationModel();
     void clearRelationModel();
 
+    void createIncludedOntoModel(std::vector<std::pair<DISEL::OntologyTag, std::filesystem::path>> includedOntos);
+    void addRowToIncludedOntoModel(DISEL::OntologyTag ot, std::filesystem::path path);
+    void bindIncludedOntoModel();
+    void updateIncludedOntoModel();
+    void clearIncludedOntoModel();
+
     // test init
     void testInit();
 
@@ -116,11 +125,13 @@ private:
     QStandardItemModel *atomDomainModel;
     QStandardItemModel *edgeModel;
     QStandardItemModel *relationModel;
+    QStandardItemModel *includedOntoModel;
     QGraphicsScene *blScene;
     QGraphicsScene *rgScene;
     QString fileName;
     BooleanLatticeModel *blModel;
 
+    QDir currentDirectory;
     bool isChanged;
 };
 #endif // MAINWINDOW_H

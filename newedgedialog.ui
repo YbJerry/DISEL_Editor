@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>249</height>
+    <width>297</width>
+    <height>254</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
      <property name="title">
       <string>To</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_4">
+     <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1">
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
@@ -28,7 +28,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="toOntoLineEdit"/>
+       <widget class="QComboBox" name="toOntoComboBox"/>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_4">
@@ -38,7 +38,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="toConLineEdit"/>
+       <widget class="QComboBox" name="toConComboBox"/>
       </item>
      </layout>
     </widget>
@@ -48,7 +48,7 @@
      <property name="title">
       <string>From</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
@@ -57,7 +57,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="fromOntoLineEdit"/>
+       <widget class="QComboBox" name="fromOntoComboBox"/>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
@@ -67,7 +67,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="fromConLineEdit"/>
+       <widget class="QComboBox" name="fromConComboBox"/>
       </item>
      </layout>
     </widget>
@@ -83,7 +83,7 @@
     </widget>
    </item>
    <item row="2" column="0">
-    <layout class="QGridLayout" name="gridLayout_2">
+    <layout class="QGridLayout" name="gridLayout_4" columnstretch="0,1">
      <item row="0" column="0">
       <widget class="QLabel" name="label_5">
        <property name="text">
@@ -92,7 +92,7 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QLineEdit" name="relaLineEdit"/>
+      <widget class="QComboBox" name="relaComboBox"/>
      </item>
     </layout>
    </item>

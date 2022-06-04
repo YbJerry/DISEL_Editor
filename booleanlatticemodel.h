@@ -48,7 +48,8 @@ private:
     QVector<QVector<QSet<QString>>> latticeNumHash;
     QVector<QVector<BaseBLItem *>> blItems;
     QVector<QGraphicsLineItem *> lineItems;
-//    QMap<NamedBLItem *, QVector<QGraphicsLineItem *>> notifyVec;
+    QMap<BaseBLItem *, QVector<BaseBLItem *>> notifyBLMap;
+    QMap<BaseBLItem *, QVector<QGraphicsLineItem *>> notifyLineMap;
     qreal distWidth, distHeight;
     qreal width, height;
 };

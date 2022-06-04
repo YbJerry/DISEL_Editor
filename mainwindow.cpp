@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     , atomDomainModel(new QStandardItemModel())
     , edgeModel(new QStandardItemModel())
     , relationModel(new QStandardItemModel())
+    , includedOntoModel(new QStandardItemModel())
     , onto(new DISEL::Ontology())
     , blScene(new QGraphicsScene())
     , rgScene(new QGraphicsScene())
@@ -28,21 +29,24 @@ MainWindow::MainWindow(QWidget *parent)
     atomDomainModel->setHorizontalHeaderLabels(QStringList({tr("Name"), tr("Description")}));
     edgeModel->setHorizontalHeaderLabels(QStringList({tr("Relation"), tr("Index"), tr("Ontology(from)"), tr("Concept(from)"), tr("Ontology(to)"), tr("Concept(to)")}));
     relationModel->setHorizontalHeaderLabels(QStringList({tr("Relation"), tr("Property")}));
+    includedOntoModel->setHorizontalHeaderLabels(QStringList({tr("Name"), tr("Path")}));
 
     ui->atomDomainView->verticalHeader()->hide();
     ui->conceptView->verticalHeader()->hide();
     ui->edgeView->verticalHeader()->hide();
     ui->relationView->verticalHeader()->hide();
+    ui->includedOntoView->verticalHeader()->hide();
 
     ui->atomDomainView->setModel(atomDomainModel);
     ui->conceptView->setModel(conceptModel);
     ui->edgeView->setModel(edgeModel);
     ui->relationView->setModel(relationModel);
+    ui->includedOntoView->setModel(includedOntoModel);
 
     ui->booleanLatticeView->setScene(blScene);
     ui->rootedGraphView->setScene(rgScene);
 
-    //testInit();
+    testInit();
 }
 
 MainWindow::~MainWindow()
@@ -210,15 +214,56 @@ void MainWindow::clearRelationModel()
     relationModel->removeRows(0, relationModel->rowCount());
 }
 
+void MainWindow::createIncludedOntoModel(std::vector<std::pair<DISEL::OntologyTag, std::filesystem::path> > includedOntos)
+{
+    for(auto [ot, path]:includedOntos){
+        addRowToIncludedOntoModel(ot, path);
+    }
+}
+
+void MainWindow::addRowToIncludedOntoModel(DISEL::OntologyTag ot, std::filesystem::path path)
+{
+    QStandardItem *nameItem = new QStandardItem(QString(ot.data()));
+    nameItem->setCheckable(true);
+    QStandardItem *pathItem = new QStandardItem(QString(path.string().data()));
+    includedOntoModel->appendRow(QList<QStandardItem*>{nameItem, pathItem});
+}
+
+void MainWindow::bindIncludedOntoModel()
+{
+    ui->includedOntoView->setModel(includedOntoModel);
+}
+
+void MainWindow::updateIncludedOntoModel()
+{
+    clearIncludedOntoModel();
+    createIncludedOntoModel(onto->getAllIncludeOntology());
+    bindIncludedOntoModel();
+}
+
+void MainWindow::clearIncludedOntoModel()
+{
+    includedOntoModel->removeRows(0, includedOntoModel->rowCount());
+}
+
 void MainWindow::testInit()
 {
-    DISXMLReader reader(R"(C:\Users\YbJerry\Desktop\dis.xml)");
+    DISXMLReader reader(R"(D:/DISEL_file/dis.xml)");
     onto = reader.read();
 
+    clearConceptModel();
     appendConceptModel(onto);
     bindConceptModel();
+
+    clearAtomDomainModel();
     createAtomDomainModel(onto->getAtomDomain());
     bindAtomDomainModel();
+
+    clearIncludedOntoModel();
+    createIncludedOntoModel(onto->getAllIncludeOntology());
+    bindIncludedOntoModel();
+
+    blModel->clear();
 
     for(auto at:onto->getAtomDomain()){
         blModel->addAtom(at->getName().data());
@@ -235,14 +280,13 @@ void MainWindow::testInit()
 
     blModel->createBLItems();
     blModel->createLines();
+    blScene->clear();
     blModel->bindScene(blScene);
 
     ui->booleanLatticeView->setScene(blScene);
     ui->booleanLatticeView->show();
 
-//    RootedGraphModel g;
-//    auto rg = g.createRootedGraph(onto->getAllGraphs().front());
-//    rgScene->addPixmap(QPixmap::fromImage(rg));
+    rgScene->clear();
 }
 
 void MainWindow::setDefination(const QModelIndex &idx)
@@ -371,7 +415,7 @@ void MainWindow::on_delConceptButton_clicked()
 
 void MainWindow::on_addEdgeButton_clicked()
 {
-    NewEdgeDialog dialog(graph, this);
+    NewEdgeDialog dialog(onto, graph, currentDirectory, this);
     if(dialog.exec() == QDialog::Accepted){
         DISEL::ConceptTag from(dialog.getFromConceptTag().toStdString());
         DISEL::ConceptTag to(dialog.getToConceptTag().toStdString());
@@ -552,6 +596,9 @@ void MainWindow::clearModel(QStandardItemModel *model)
 void MainWindow::on_actionLoad_triggered()
 {
     fileName = QFileDialog::getOpenFileName(this, tr("Open DIS File"), ".", tr("DIS Files (*.xml)"));
+    currentDirectory.setPath(fileName);
+    currentDirectory.cdUp();
+    qDebug() << currentDirectory.path();
     qDebug() << fileName;
 
     if(fileName.isEmpty())
@@ -574,6 +621,10 @@ void MainWindow::on_actionLoad_triggered()
     clearAtomDomainModel();
     createAtomDomainModel(onto->getAtomDomain());
     bindAtomDomainModel();
+
+    clearIncludedOntoModel();
+    createIncludedOntoModel(onto->getAllIncludeOntology());
+    bindIncludedOntoModel();
 
     blModel->clear();
 
@@ -688,3 +739,41 @@ void MainWindow::on_actionAbout_triggered()
     QDesktopServices::openUrl(QUrl("https://ybjerry.github.io/DISEL_Editor_helpdoc/about/"));
 }
 
+
+void MainWindow::on_addOntoButton_clicked()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Import Ontology"), ".", tr("DIS Files (*.xml)"));
+    QString ontoName;
+    try {
+        auto reader = DISXMLReader(fileName.toStdString());
+        auto includedOnto = reader.read();
+        ontoName = QString::fromStdString(includedOnto->getName());
+    }  catch (const std::exception& e) {
+        QMessageBox msgBox;
+        msgBox.setText("The file is not a valid DIS file!");
+        msgBox.exec();
+        return;
+    }
+    fileName = currentDirectory.relativeFilePath(fileName);
+    onto->addIncludeOntology(ontoName.toStdString(), std::filesystem::path(fileName.toStdString()));
+    addRowToIncludedOntoModel(ontoName.toStdString(), std::filesystem::path(fileName.toStdString()));
+    bindIncludedOntoModel();
+}
+
+
+void MainWindow::on_delOntoButton_clicked()
+{
+    for(int i = 0; i < includedOntoModel->rowCount();){
+        auto it = includedOntoModel->item(i, 0);
+        if(it->checkState() == Qt::Checked){
+            auto name = it->data(Qt::DisplayRole).toString().toStdString();
+            includedOntoModel->removeRow(i);
+            onto->delIncludeOntology(name.c_str());
+        }else{
+            ++i;
+        }
+    }
+    clearIncludedOntoModel();
+    createIncludedOntoModel(onto->getAllIncludeOntology());
+    bindIncludedOntoModel();
+}
