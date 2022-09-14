@@ -25,19 +25,35 @@ void BooleanLatticeModel::addAtoms(QVector<QString> ats)
     }
 }
 
+void BooleanLatticeModel::addRoots(QVector<QString> rts)
+{
+    roots = rts;
+}
+
+void BooleanLatticeModel::addRoot(QString rt)
+{
+    roots.push_back(rt);
+}
+
+const QVector<QString> &BooleanLatticeModel::getAtoms() const
+{
+    return atoms;
+}
+
 void BooleanLatticeModel::addAtom(QString at)
 {
-    atoms.insert(at);
+    atoms.push_back(at);
     latticeNumHash.resize(atoms.size()+1);
 }
 
 void BooleanLatticeModel::addConcept(QString con, const QVector<QString> &conLat)
 {
-    int idx = conLat.size();
-    concepts[con] = new QSet<QString>{};
+    quint64 bits = 0;
     for(auto &cl:conLat){
-        concepts[con]->insert(cl);
+        auto it = std::find(atoms.begin(), atoms.end(), cl);
+        bits |= (1i64 << it-atoms.begin());
     }
+    concepts[bits]=con;
 }
 
 void BooleanLatticeModel::createBLItems()
@@ -53,60 +69,63 @@ void BooleanLatticeModel::createBLItems()
         return;
     }
 
-    qreal left = 0, top = 0;
+//    qreal left = 0, top = 0;
     int n = atoms.size();
 
     blItems.resize(n+1);
 
-    QQueue<int> atomStartIdxs;
-
     // create bottom lattice
-    latticeNumHash[0].push_back(QSet<QString>{});
-    int maxItemNum = 1;
+    blItems[0].push_back(new BaseBLItem("⊥", 0, BLTYPE::NORMAL));
 
-    int idx = 1;
-    for(auto iter = atoms.begin(); iter != atoms.end(); ++iter){
-        latticeNumHash[1].push_back(QSet<QString>{*iter});
-        atomStartIdxs.push_back(idx++);
-    }
-    maxItemNum = qMax(maxItemNum, latticeNumHash[1].size());
+    auto blNum = qPow(2, n);
+    // When oneNum is 1, the new BaseBLItem need a value to store which atom it belongs to
+    int atIdx = 0;
 
-    for(int i = 2; i <= n; ++i){
-        for(int j = 0; j < latticeNumHash[i-1].size(); ++j){
-            int setAppendIdx = atomStartIdxs.first();
-            atomStartIdxs.pop_front();
-            QSet<QString> st(latticeNumHash[i-1][j]);
-            for(int l = setAppendIdx; l < n; ++l){
-                latticeNumHash[i].push_back(st.unite(latticeNumHash[1][l]));
-                st.subtract(latticeNumHash[1][l]);
-                atomStartIdxs.push_back(l+1);
-            }
-        }
-        maxItemNum = qMax(maxItemNum, latticeNumHash[i].size());
-    }
-
-    for(int i = n; i >= 0; --i){
-        int CNum = latticeNumHash[i].size();
-        for(int j = 0; j < CNum; ++j){
-//            QString name = "{";
-//            for(auto &item:latticeNumHash[i][j]){
-//                name += item + ", ";
-//            }
-//            name += "}";
-            QString name;
-            BaseBLItem *blItem;
-            if(auto con = getNameOfEqualSet(latticeNumHash[i][j]); con){
-                name += con.value();
-                blItem = new BaseBLItem(name, getCenterAlignedPosition(latticeNumHash[i].size(), maxItemNum, i, j), width, height, BLTYPE::NORMAL);
+    for(quint64 bits = 1; bits < blNum-1; ++bits){
+        int oneNum = countOneNum(bits);
+        BaseBLItem* blItem;
+        if(oneNum == 1){
+            blItem = new BaseBLItem(atoms[atIdx++], bits, BLTYPE::NORMAL);
+            blItems[1].push_back(blItem);
+        }else if(concepts.count(bits)){
+            if(std::find(roots.begin(), roots.end(), concepts[bits]) != roots.end()){
+                blItem = new BaseBLItem(concepts[bits], bits,  BLTYPE::ROOT);
             }else{
-                blItem = new BaseBLItem(name, getCenterAlignedPosition(latticeNumHash[i].size(), maxItemNum, i, j), width, height, BLTYPE::ANONY);
+                blItem = new BaseBLItem(concepts[bits], bits,  BLTYPE::NORMAL);
             }
-            connect(blItem, &BaseBLItem::clicked, this, &BooleanLatticeModel::emitBLItemClicked);
-            blItems[i].push_back(blItem);
-            left += distWidth + width;
+            blItems[oneNum].push_back(blItem);
+        }else{
+            blItem = new BaseBLItem("", bits, BLTYPE::ANONY);
+            blItems[oneNum].push_back(blItem);
         }
-        left = 0;
-        top += distHeight + height;
+        connect(blItem, &BaseBLItem::clicked, this, &BooleanLatticeModel::emitBLItemClicked);
+        connect(blItem, &BaseBLItem::addCon, this, &BooleanLatticeModel::emitBLItemAddCon);
+    }
+
+    // create top lattice
+    if(concepts.count(blNum-1)){
+        auto blItem = new BaseBLItem(concepts[blNum-1], blNum-1, BLTYPE::NORMAL);
+        if(std::find(roots.begin(), roots.end(), concepts[blNum-1]) != roots.end()){
+            blItem = new BaseBLItem(concepts[blNum-1], blNum-1,  BLTYPE::ROOT);
+        }else{
+            blItem = new BaseBLItem(concepts[blNum-1], blNum-1,  BLTYPE::NORMAL);
+        }
+        blItems[n].push_back(blItem);
+        connect(blItem, &BaseBLItem::clicked, this, &BooleanLatticeModel::emitBLItemClicked);
+        connect(blItem, &BaseBLItem::addCon, this, &BooleanLatticeModel::emitBLItemAddCon);
+    }else{
+        blItems[n].push_back(new BaseBLItem("ㄒ", blNum-1, BLTYPE::NORMAL));
+    }
+
+    int maxItemNum = 1;
+    for(int i = 0; i < blItems.size(); ++i){
+        maxItemNum = qMax(maxItemNum, blItems[i].size());
+    }
+
+    for(int i = 0; i < blItems.size(); ++i){
+        for(int j = 0; j < blItems[i].size(); ++j){
+            blItems[i][j]->setPosAndSize(getCenterAlignedPosition(blItems[i].size(), maxItemNum, i, j), width, height);
+        }
     }
 }
 
@@ -114,9 +133,9 @@ void BooleanLatticeModel::createLines()
 {
     int n = atoms.size();
     for(int i = n; i > 0; --i){
-        for(int j = 0; j < latticeNumHash[i].size(); ++j){
-            for(int k = 0; k < latticeNumHash[i-1].size(); ++k){
-                if(latticeNumHash[i][j].contains(latticeNumHash[i-1][k])){
+        for(int j = 0; j < blItems[i].size(); ++j){
+            for(int k = 0; k < blItems[i-1].size(); ++k){
+                if(blItems[i][j]->contains(*blItems[i-1][k])){
                     auto pos1 = blItems[i][j]->getLowerCenterPos();
                     auto pos2 = blItems[i-1][k]->getUpperCenterPos();
                     blItems[i][j]->addNotifyBLItem(blItems[i-1][k]);
@@ -148,12 +167,9 @@ void BooleanLatticeModel::bindScene(QGraphicsScene *scene)
 void BooleanLatticeModel::clear()
 {
     atoms.clear();
-    for(auto iter = concepts.begin(); iter != concepts.end(); ++iter){
-        auto* p = iter.value();
-        delete p;
-    }
     concepts.clear();
     latticeNumHash.clear();
+    roots.clear();
 
     for(auto &vec : blItems){
         for(auto pItem : vec){
@@ -173,6 +189,20 @@ void BooleanLatticeModel::emitBLItemClicked(QString conceptName)
     emit blItemClicked(conceptName);
 }
 
+void BooleanLatticeModel::emitBLItemAddCon(quint64 atomsBits)
+{
+    QVector<QString> resAtoms;
+    int i = 0;
+    while(atomsBits){
+        if((atomsBits & 1i64) == 1){
+            resAtoms.push_back(atoms[i]);
+        }
+        atomsBits >>= 1;
+        ++i;
+    }
+    emit blItemAddCon(resAtoms);
+}
+
 QPointF BooleanLatticeModel::getCenterAlignedPosition(int currRowItemNum, int maxItemNum, int row, int idx)
 {
     int n = atoms.size();
@@ -185,23 +215,17 @@ QPointF BooleanLatticeModel::getCenterAlignedPosition(int currRowItemNum, int ma
     return QPointF{x, y};
 }
 
-std::optional<QString> BooleanLatticeModel::getNameOfEqualSet(QSet<QString> targetSet)
+inline int BooleanLatticeModel::countOneNum(quint64 n)
 {
-    if(targetSet.size() == 0){
-        return "⊥";
+    int res = 0;
+    while(n){
+        ++res;
+        n = n & (n-1);
     }
-    if(targetSet.size() == 1){
-        return *targetSet.begin();
-    }
-    for(auto iter = concepts.begin(); iter != concepts.end(); ++iter){
-        const auto &con = iter.key();
-        const auto &set = *iter.value();
-        if(set == targetSet){
-            return con;
-        }
-    }
-    if(targetSet.size() == atoms.size()){
-        return "ㄒ";
-    }
-    return std::nullopt;
+    return res;
+}
+
+bool BooleanLatticeModel::contains(quint64 a, quint64 b)
+{
+    return a == (a | b);
 }

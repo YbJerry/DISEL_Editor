@@ -1,15 +1,19 @@
-QT       += core gui
+QT       += core gui testlib
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++20
+CONFIG += no_testcase_installs
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    attrlineitem.cpp \
     baseblitem.cpp \
+    basegraphicsitem.cpp \
+    basergitem.cpp \
     booleanlatticemodel.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -21,7 +25,10 @@ SOURCES += \
     utils.cpp
 
 HEADERS += \
+    attrlineitem.h \
     baseblitem.h \
+    basegraphicsitem.h \
+    basergitem.h \
     booleanlatticemodel.h \
     mainwindow.h \
     newatomdialog.h \
@@ -63,7 +70,7 @@ else:unix: LIBS += -LC:/src/vcpkg/packages/tinyxml2_x64-windows/lib/ -ltinyxml2
 INCLUDEPATH += C:/src/vcpkg/packages/tinyxml2_x64-windows/include
 DEPENDPATH += C:/src/vcpkg/packages/tinyxml2_x64-windows/include
 
-unix|win32: LIBS += -L'C:/Program Files/Graphviz/lib/' -lgvc -lcdt -lcgraph
+#unix|win32: LIBS += -L'C:/Program Files/Graphviz/lib/' -lgvc -lcdt -lcgraph
 
-INCLUDEPATH += 'C:/Program Files/Graphviz/include/graphviz'
-DEPENDPATH += 'C:/Program Files/Graphviz/include/graphviz'
+#INCLUDEPATH += 'C:/Program Files/Graphviz/include/graphviz'
+#DEPENDPATH += 'C:/Program Files/Graphviz/include/graphviz'

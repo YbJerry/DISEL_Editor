@@ -5,6 +5,10 @@
 #include "rootedgraphmodel.h"
 
 RootedGraphModel::RootedGraphModel()
+    :distWidth(30)
+    ,distHeight(80)
+    ,width(150)
+    ,height(60)
 {
 
 }
@@ -64,4 +68,115 @@ QImage RootedGraphModel::createRootedGraph(DISEL::Graph *gra)
     res.loadFromData(arr);
 
     return res;
+}
+
+void RootedGraphModel::createRootedGraph1(DISEL::Graph *gra)
+{
+    QMap<DISEL::ConceptTag, BaseRGItem *> nodeMap;
+    for(auto node:gra->getAllNodes()){
+        QString name;
+        RGTYPE type = RGTYPE::NORMAL;
+        if(node.fromOther()){
+            name += node.getOntologyBelong().data();
+            name += '.';
+        }
+        name += node.getName().data();
+
+        if(name.toStdString() == gra->getRoot().getName()){
+            type = RGTYPE::ROOT;
+        }
+
+        BaseRGItem *item = new BaseRGItem(name, type);
+        rgItems.insert(item);
+        nodeMap[node]= item;
+
+        if(type == RGTYPE::ROOT){
+            rootItem = item;
+        }
+    }
+
+    for(auto edge:gra->getUnattributableEdges()){
+        auto from = nodeMap[edge.getFromTag()];
+        auto to = nodeMap[edge.getToTag()];
+        reversedEdges[to].insert(from);
+        attrs[{from, to}] = "";
+    }
+
+    for(const auto & [rela, edgeVec]:gra->getAttributableEdges()){
+        for(const auto &edge:edgeVec){
+            auto from = nodeMap[edge.getFromTag()];
+            auto to = nodeMap[edge.getToTag()];
+            reversedEdges[to].insert(from);
+            attrs[{from, to}] = QString::fromStdString(rela);
+        }
+    }
+
+    int maxItemNum = 0;
+    QVector<QVector<BaseRGItem *>> hierVec;
+    QSet<BaseRGItem *> searchedSet;
+    QQueue<BaseRGItem *> queue;
+    queue.enqueue(rootItem);
+    for(int hier = 0; !queue.isEmpty(); ++hier){
+        QQueue<BaseRGItem *> sameHierQueue;
+        hierVec.push_back({});
+        while(!queue.isEmpty()){
+            auto parentItem = queue.dequeue();
+            hierVec[hier].push_back(parentItem);
+            sameHierQueue.enqueue(parentItem);
+        }
+
+        int currentItemNum = 0;
+        while(!sameHierQueue.isEmpty()){
+            auto to = sameHierQueue.dequeue();
+            currentItemNum++;
+            for(auto from:qAsConst(reversedEdges[to])){
+                searchedSet.insert(to);
+                if(!searchedSet.contains(from)){
+                    queue.enqueue(from);
+                }
+            }
+        }
+        maxItemNum = qMax(maxItemNum, currentItemNum);
+    }
+
+    const qreal totalWidth = maxItemNum * (distWidth + width) + distWidth;
+    qreal top = distHeight;
+    for(int i = 0; i < hierVec.size(); ++i){
+        int n = hierVec[i].size();
+        qreal realDistWidth = (totalWidth - width*n) / (n + 1);
+        qreal left = realDistWidth;
+
+        for(int j = 0; j < hierVec[i].size(); ++j){
+            auto &item = hierVec[i][j];
+            item->setPosAndSize(QPointF{left, top}, width, height);
+            left += realDistWidth + width;
+        }
+        top += distHeight + height;
+    }
+
+    for(auto iter = attrs.begin(); iter != attrs.end(); ++iter){
+        auto [from, to] = iter.key();
+        auto text = iter.value();
+
+        auto line = new AttrLineItem(
+                        from->getCenterX(),
+                        from->getCenterY(),
+                        to->getCenterX(),
+                        to->getCenterY()
+                    );
+        line->setText(text);
+
+        lineItems.push_back(line);
+    }
+}
+
+void RootedGraphModel::bindScene(QGraphicsScene *scene)
+{
+    for(auto item:lineItems){
+        scene->addItem(item);
+    }
+
+    for(auto item:rgItems){
+        scene->addItem(item);
+    }
 }

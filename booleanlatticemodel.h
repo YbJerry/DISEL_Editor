@@ -12,6 +12,9 @@
 #include <QVector>
 #include <QQueue>
 #include <QTabWidget>
+#include <QBitArray>
+
+#include "DISOntology.h"
 
 #include "baseblitem.h"
 
@@ -26,7 +29,10 @@ public:
     ~BooleanLatticeModel();
 
     void addAtoms(QVector<QString> ats);
+    const QVector<QString> &getAtoms() const;
     void addAtom(QString at);
+    void addRoots(QVector<QString> rts);
+    void addRoot(QString rt);
     void addConcept(QString con, const QVector<QString> &conLat);
     void createBLItems();
     void createLines();
@@ -35,16 +41,22 @@ public:
 
 public slots:
     void emitBLItemClicked(QString conceptName);
+    void emitBLItemAddCon(quint64 atoms);
+//    void emitBLItemAddGra();
 
 signals:
     void blItemClicked(QString conceptName);
+    void blItemAddCon(QVector<QString> atoms);
 
 private:
     QPointF getCenterAlignedPosition(int currRowItemNum, int maxItemNum, int row, int idx);
-    std::optional<QString> getNameOfEqualSet(QSet<QString>);
 
-    QSet<QString> atoms;
-    QMap<QString, QSet<QString>*> concepts;
+    inline int countOneNum(quint64 n);
+    bool contains(quint64 a, quint64 b);
+
+    QVector<QString> atoms;
+    QVector<QString> roots;
+    QMap<quint64, QString> concepts;
     QVector<QVector<QSet<QString>>> latticeNumHash;
     QVector<QVector<BaseBLItem *>> blItems;
     QVector<QGraphicsLineItem *> lineItems;

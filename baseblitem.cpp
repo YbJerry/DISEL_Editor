@@ -4,13 +4,13 @@
 
 #include "baseblitem.h"
 
-BaseBLItem::BaseBLItem(QString name, BLTYPE type)
-    : BaseBLItem(name, 0, 0, 80, 60, type)
+BaseBLItem::BaseBLItem(QString name, quint64 atoms, BLTYPE type)
+    : BaseBLItem(name, atoms, 0, 0, 80, 60, type)
 {
 
 }
 
-BaseBLItem::BaseBLItem(QString name, qreal left, qreal top, qreal width, qreal height, BLTYPE type)
+BaseBLItem::BaseBLItem(QString name, quint64 atoms, qreal left, qreal top, qreal width, qreal height, BLTYPE type)
     : name(name)
     , left(left)
     , top(top)
@@ -19,11 +19,12 @@ BaseBLItem::BaseBLItem(QString name, qreal left, qreal top, qreal width, qreal h
     , penWidth(1)
     , type(type)
     , isFocused(false)
+    , atoms(atoms)
 {
     setAcceptHoverEvents(true);
 }
 
-BaseBLItem::BaseBLItem(QString name, QPointF pos, qreal width, qreal height, BLTYPE type)
+BaseBLItem::BaseBLItem(QString name, quint64 atoms, QPointF pos, qreal width, qreal height, BLTYPE type)
     : name(name)
     , left(pos.x())
     , top(pos.y())
@@ -32,6 +33,7 @@ BaseBLItem::BaseBLItem(QString name, QPointF pos, qreal width, qreal height, BLT
     , penWidth(1)
     , type(type)
     , isFocused(false)
+    , atoms(atoms)
 {
     setAcceptHoverEvents(true);
 }
@@ -66,6 +68,14 @@ void BaseBLItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     painter->drawText(rect, Qt::AlignCenter, name);
 }
 
+void BaseBLItem::setPosAndSize(QPointF pos, qreal width, qreal height)
+{
+    this->left = pos.x();
+    this->top = pos.y();
+    this->width = width;
+    this->height = height;
+}
+
 QPointF BaseBLItem::getCenterPos()
 {
     return QPointF{left+width/2, top+height/2};
@@ -79,6 +89,11 @@ QPointF BaseBLItem::getUpperCenterPos()
 QPointF BaseBLItem::getLowerCenterPos()
 {
     return QPointF{left+width/2, top+height};
+}
+
+bool BaseBLItem::contains(const BaseBLItem &item)
+{
+    return atoms == (atoms | item.atoms);
 }
 
 void BaseBLItem::redraw()
@@ -102,7 +117,36 @@ void BaseBLItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 
 void BaseBLItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
 {
-    emit clicked(name);
+    if(type != BLTYPE::ANONY){
+        emit clicked(name);
+    }
+}
+
+//void BaseBLItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+//{
+//    if(event->button() == Qt::RightButton){
+
+//    }
+//}
+
+void BaseBLItem::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
+{
+    QMenu menu;
+    menu.addAction(tr("Add Concept with this lattice"), this, &BaseBLItem::emitAddCon);
+//    switch(type){
+//    case BLTYPE::NORMAL:
+//        menu.addAction(tr("Add Graph with this concept as root"));
+//        break;
+//    case BLTYPE::ROOT:
+//        menu.addAction(tr("Switch to Graph"));
+//        break;
+//    case BLTYPE::ANONY:
+//        break;
+//    default:
+//        break;
+//    }
+
+    menu.exec(event->screenPos());
 }
 
 void BaseBLItem::addNotifyLine(QGraphicsLineItem *line)
@@ -134,4 +178,9 @@ void BaseBLItem::notifyLinkingItems(bool focus)
 void BaseBLItem::setFocused(bool focus)
 {
     isFocused = focus;
+}
+
+void BaseBLItem::emitAddCon(bool)
+{
+    emit addCon(atoms);
 }

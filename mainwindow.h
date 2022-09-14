@@ -47,6 +47,7 @@ public:
 private slots:
     void setDefination(const QModelIndex &idx);
     void createRootedGraph(QString name);
+    void addConceptFromLattice(QVector<QString> atoms);
 
     void on_addAtomDomainButton_clicked();
     void on_delAtomDomainButton_clicked();

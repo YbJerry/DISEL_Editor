@@ -17,8 +17,16 @@ NewConceptDialog::NewConceptDialog(DISEL::Ontology * onto, bool alreadyCreated, 
     for(auto at:onto->getAtomDomain()){
         auto *chkBox = new QCheckBox(at->getName().data(), this);
         chkBoxes.push_back(chkBox);
+        if(alreadyCreated){
+            chkBox->setEnabled(false);
+        }
         ui->groupBox->layout()->addWidget(chkBox);
     }
+
+    if(alreadyCreated){
+        ui->lineEdit->setReadOnly(true);
+    }
+
     ui->groupBox->layout()->update();
 }
 
@@ -51,11 +59,20 @@ QVector<QString> NewConceptDialog::getAtoms()
 void NewConceptDialog::setContent(const DISEL::Concept &con)
 {
     ui->lineEdit->setText(con.getName().data());
-    ui->lineEdit->setReadOnly(true);
     ui->textEdit->setText(con.getDescription().data());
 
     for(auto at:con.getLatticeOfConcepts()){
         auto pred = [at](const QCheckBox *box){return box->text() == at.data();};
+        if(auto iter = std::find_if(chkBoxes.begin(), chkBoxes.end(), pred); iter != chkBoxes.end()){
+            (*iter)->setChecked(true);
+        }
+    }
+}
+
+void NewConceptDialog::setCheckedAtoms(const QVector<QString> &atoms)
+{
+    for(auto at:atoms){
+        auto pred = [at](const QCheckBox *box){return box->text() == at;};
         if(auto iter = std::find_if(chkBoxes.begin(), chkBoxes.end(), pred); iter != chkBoxes.end()){
             (*iter)->setChecked(true);
         }
@@ -84,14 +101,14 @@ void NewConceptDialog::on_buttonBox_accepted()
     }
 }
 
-void NewConceptDialog::on_comboBox_currentIndexChanged(int idx)
-{
-    // clear all the items in groupbox
-    QLayoutItem* item;
-    while((item = ui->vBoxLayout->takeAt(0)) != nullptr){
-        delete item->widget();
-        delete item;
-    }
+//void NewConceptDialog::on_comboBox_currentIndexChanged(int idx)
+//{
+//    // clear all the items in groupbox
+//    QLayoutItem* item;
+//    while((item = ui->vBoxLayout->takeAt(0)) != nullptr){
+//        delete item->widget();
+//        delete item;
+//    }
 
-    chkBoxes.clear();
-}
+//    chkBoxes.clear();
+//}

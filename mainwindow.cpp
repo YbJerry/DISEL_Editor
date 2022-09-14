@@ -6,6 +6,8 @@
 #include "ui_mainwindow.h"
 #include "utils.hpp"
 
+#include "benchmarking.cpp"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -24,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     connect(blModel, &BooleanLatticeModel::blItemClicked, this, &MainWindow::createRootedGraph);
+    connect(blModel, &BooleanLatticeModel::blItemAddCon, this, &MainWindow::addConceptFromLattice);
 
     conceptModel->setHorizontalHeaderLabels(QStringList({tr("Name"), tr("Description")}));
     atomDomainModel->setHorizontalHeaderLabels(QStringList({tr("Name"), tr("Description")}));
@@ -269,6 +272,10 @@ void MainWindow::testInit()
         blModel->addAtom(at->getName().data());
     }
 
+    for(auto rt:onto->getAllRoots()){
+        blModel->addRoot(rt.getName().data());
+    }
+
     for(auto con:onto->getAllConcepts()){
         auto lattices = con->getLatticeOfConcepts();
         QVector<QString> transLattices;
@@ -307,9 +314,12 @@ void MainWindow::createRootedGraph(QString name)
     if(auto iter = std::find_if(graphs.begin(), graphs.end(), func); iter != graphs.end()){
         graph = *iter;
         RootedGraphModel g;
-        auto rg = g.createRootedGraph(graph);
+//        auto rg = g.createRootedGraph(graph);
+//        rgScene->clear();
+//        rgScene->addPixmap(QPixmap::fromImage(rg));
+        g.createRootedGraph1(graph);
         rgScene->clear();
-        rgScene->addPixmap(QPixmap::fromImage(rg));
+        g.bindScene(rgScene);
 
         clearEdgeModel();
         createEdgeModel(*iter);
@@ -348,6 +358,23 @@ void MainWindow::createRootedGraph(QString name)
     }
 }
 
+void MainWindow::addConceptFromLattice(QVector<QString> atoms)
+{
+    NewConceptDialog dialog(onto, false, this);
+    dialog.setCheckedAtoms(atoms);
+    if(dialog.exec() == QDialog::Accepted){
+        DISEL::Concept *con = new DISEL::Concept(dialog.getNameStr().toStdString());
+        for(auto at:dialog.getAtoms()){
+            con->addAtomTypeLattice(at.toStdString());
+        }
+        con->setDescription(dialog.getDescStr().toStdString());
+        onto->addConcept(con);
+        addRowToConceptModel(*con);
+        bindConceptModel();
+        createBooleanLattice();
+    }
+}
+
 void MainWindow::on_addAtomDomainButton_clicked()
 {
     NewAtomDialog dialog(onto, false, this);
@@ -363,7 +390,7 @@ void MainWindow::on_addAtomDomainButton_clicked()
 
 void MainWindow::on_addConceptButton_clicked()
 {
-    NewConceptDialog dialog(onto, this);
+    NewConceptDialog dialog(onto, false, this);
     if(dialog.exec() == QDialog::Accepted){
         DISEL::Concept *con = new DISEL::Concept(dialog.getNameStr().toStdString());
         for(auto at:dialog.getAtoms()){
@@ -427,8 +454,6 @@ void MainWindow::on_addEdgeButton_clicked()
         if(auto onto = dialog.getToOntologyTag(); onto){
             to.setOntologyBelong(onto->toStdString());
         }
-
-        DISEL::Edge *edge = new DISEL::Edge(from, to);
 
         if(auto rela = dialog.getRelationTag(); rela){
             DISEL::RelationTag rt(rela->toStdString());
@@ -632,6 +657,10 @@ void MainWindow::on_actionLoad_triggered()
         blModel->addAtom(at->getName().data());
     }
 
+    for(auto rt:onto->getAllRoots()){
+        blModel->addRoot(rt.getName().data());
+    }
+
     for(auto con:onto->getAllConcepts()){
         auto lattices = con->getLatticeOfConcepts();
         QVector<QString> transLattices;
@@ -692,6 +721,10 @@ void MainWindow::createBooleanLattice()
     blModel->clear();
     for(auto at:onto->getAtomDomain()){
         blModel->addAtom(at->getName().data());
+    }
+
+    for(auto rt:onto->getAllRoots()){
+        blModel->addRoot(rt.getName().data());
     }
 
     for(auto con:onto->getAllConcepts()){

@@ -29,11 +29,12 @@ public:
     QString getDescStr();
     QVector<QString> getAtoms();
     void setContent(const DISEL::Concept &con);
+    void setCheckedAtoms(const QVector<QString> &atoms);
 
 private slots:
     void on_buttonBox_accepted();
 
-    void on_comboBox_currentIndexChanged(int index);
+    //void on_comboBox_currentIndexChanged(int index);
 
 private:
     Ui::NewConceptDialog *ui;
